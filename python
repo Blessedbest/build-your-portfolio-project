@@ -1,0 +1,71 @@
+import random
+import curses
+
+# Create a random maze using Depth-First Search
+def create_maze(width, height):
+    maze = [["#" for _ in range(width)] for _ in range(height)]
+
+    def carve_passages(x, y):
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        random.shuffle(directions)
+        for dx, dy in directions:
+            nx, ny = x + 2 * dx, y + 2 * dy
+            if 1 <= nx < width - 1 and 1 <= ny < height - 1 and maze[ny][nx] == "#":
+                maze[ny][nx] = " "
+                maze[y + dy][x + dx] = " "
+                carve_passages(nx, ny)
+
+    maze[1][1] = " "  # Start point
+    carve_passages(1, 1)
+    maze[height - 2][width - 2] = " "  # End point
+    return maze
+
+# Display the maze using curses
+def display_maze(stdscr, maze, player_x, player_y):
+    stdscr.clear()
+    for y, row in enumerate(maze):
+        for x, char in enumerate(row):
+            if x == player_x and y == player_y:
+                stdscr.addch(y, x, "@")  # Player character
+            else:
+                stdscr.addch(y, x, char)
+    stdscr.refresh()
+
+# Main game loop
+def main(stdscr):
+    curses.curs_set(0)  # Hide the cursor
+    stdscr.nodelay(1)   # Non-blocking input
+    stdscr.timeout(100)  # Refresh rate
+
+    width, height = 21, 21  # Size of the maze
+    maze = create_maze(width, height)
+    
+    player_x, player_y = 1, 1  # Start position
+    
+    while True:
+        display_maze(stdscr, maze, player_x, player_y)
+        
+        key = stdscr.getch()
+        
+        if key == ord("q"):  # Quit the game
+            break
+        
+        # Move the player
+        if key == curses.KEY_UP and maze[player_y - 1][player_x] == " ":
+            player_y -= 1
+        elif key == curses.KEY_DOWN and maze[player_y + 1][player_x] == " ":
+            player_y += 1
+        elif key == curses.KEY_LEFT and maze[player_y][player_x - 1] == " ":
+            player_x -= 1
+        elif key == curses.KEY_RIGHT and maze[player_y][player_x + 1] == " ":
+            player_x += 1
+
+        # Check if the player reached the exit
+        if player_x == width - 2 and player_y == height - 2:
+            stdscr.addstr(height // 2, width // 2 - 5, "You Win!")
+            stdscr.refresh()
+            stdscr.getch()
+            break
+
+# Run the game
+curses.wrapper(main)
